@@ -17,7 +17,6 @@ const registerController = {
             email: Joi.string().email().required(),
             password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).min(8).max(50).required(),
             profileImageLink: Joi.string().required(),
-
         });
 
         const { error } = registerSchema.validate(req.body);
