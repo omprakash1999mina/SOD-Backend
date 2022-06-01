@@ -30,7 +30,7 @@ try {
 }
 
 app.use(express.json());
-app.use('/sod/api/v1', routes);
+app.use('/api/v1', routes);
 app.use(errorHandler);
 app.set('view engine', 'ejs');
 
