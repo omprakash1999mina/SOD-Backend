@@ -20,7 +20,7 @@ const userController = {
         // validation
 
         const updateSchema = Joi.object({
-            userName: Joi.string().min(3).max(20).required(),
+            userName: Joi.string().min(3).max(100).required(),
             gender: Joi.string().required(),
             age: Joi.string().min(18).required(),
             email: Joi.string().email().required(),
