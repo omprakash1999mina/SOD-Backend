@@ -8,7 +8,7 @@ const userController = {
 
         let document;
         try {
-            document = await User.findOne({ _id: req.params.id }).select('-updatedAt -__v -createdAt -password');
+            document = await User.findOne({ _id: req.params.id }).select('-updatedAt -__v -createdAt -password -_id');
         } catch (err) {
             discord.SendErrorMessageToDiscord(req.params.id, "Get one user", err);
             return next(CustomErrorHandler.serverError());
@@ -24,7 +24,7 @@ const userController = {
             gender: Joi.string().required(),
             age: Joi.string().min(18).required(),
             email: Joi.string().email().required(),
-            password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).min(8).max(50).required(),
+            password: Joi.string().min(8).max(50).required(),
             profileImageLink: Joi.string().required(),
 
             aadhaarNumber: Joi.string().min(12).max(12).required(),
@@ -33,8 +33,7 @@ const userController = {
 
             aadhaarImageLink: Joi.string().required(),
             panImageLink: Joi.string().required(),
-            salarySlipImageLink: Joi.string().required(),
-
+            salarySlipImageLink: Joi.array().required(),
 
             accountHolderName: Joi.string().required(),
             accountNumber: Joi.string().required(),
