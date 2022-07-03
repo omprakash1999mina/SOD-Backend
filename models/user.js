@@ -9,7 +9,7 @@ const userSchema = new Schema({
     profileAccountBalance: {type:String, default: 0 },
     
     age: {type:String, default: ""},
-    gender: {type:String, default: "" },
+    gender: {type:String, default: "Male" },
     aadhaarNumber: {type:String, default: "" },
     panNumber: {type:String, default: "" },
     ctc: {type:String, default: "" },
