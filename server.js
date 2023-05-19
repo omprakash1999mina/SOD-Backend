@@ -18,10 +18,10 @@ app.use(cors({
 
 //Database connection
 try {
-
+  mongoose.connect(DB_URL, { useNewUrlParser: true, useUnifiedTopology: true});
   // mongoose.connect(DB_URL, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
-  mongoose.connect(DB_URL, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
   const db = mongoose.connection;
+
   db.on('error', console.error.bind(console, 'connection error:'));
   db.once('open', () => {
     console.log('DB connected...');
@@ -35,7 +35,7 @@ app.use(express.urlencoded({ extended: true}));
 // app.use(bodyParser.);
 
 app.use('/api/v1', routes);
-app.use(errorHandler);
+// app.use(errorHandler);
 app.set('view engine', 'ejs');
 
 //The 404 Route (ALWAYS Keep this as the last route)
