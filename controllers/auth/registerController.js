@@ -3,7 +3,6 @@ import { User } from "../../models";
 import CustomErrorHandler from '../../Services/CustomerrorHandler';
 import bcrypt from 'bcrypt';
 import JwtService from '../../Services/JwtService';
-import firebaseServices from '../../Services/firebaseConfig';
 import discord from '../../Services/discord';
 import RedisService from '../../Services/redis';
 
@@ -20,21 +19,8 @@ const registerController = {
         });
 
         const { error } = registerSchema.validate(req.body);
-        let ok = false;
 
         if (error) {
-            if (req.body.profileImageName) {
-                ok = firebaseServices.DeleteFileInFirebase(req.body.profileImageName)
-            }
-            // implimetation for discord error logs
-            if (!ok) {
-                discord.SendErrorMessageToDiscord(req.body.email, "Register User", "error in deleting files in firebase !!");
-                console.log("failed to deleting file")
-            }
-            else {
-                discord.SendErrorMessageToDiscord(req.body.email, "Register User", error + " and All files deleted successfully");
-                console.log("error accurs and all files deleted on firebase successfully")
-            }
             return next(error);
         }
         try {

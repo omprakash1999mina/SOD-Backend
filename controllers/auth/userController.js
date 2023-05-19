@@ -2,6 +2,11 @@ import { User } from "../../models";
 import CustomErrorHandler from "../../Services/CustomerrorHandler";
 import bcrypt from 'bcrypt';
 import Joi from 'joi';
+import firebaseServices from "../../Services/firebaseConfig";
+import uploadMultiple from "../../middleware/formDataHandler";
+import fs from 'fs';
+import discord from "../../Services/discord";
+
 
 const userController = {
     async getUsersOne(req, res, next) {
@@ -17,141 +22,212 @@ const userController = {
     },
 
     async update(req, res, next) {
-        // validation
+        console.log(req)
+        uploadMultiple(req, res, async (err) => {
+            // validation
+            if (err) {
+                DeleteOsFiles(req);
+                return next(CustomErrorHandler.serverError(err.message))
+            }
+            // console.log(req.files)
+            console.log(req.body)
 
-        const updateSchema = Joi.object({
-            userName: Joi.string().min(3).max(100).required(),
-            gender: Joi.string().required(),
-            age: Joi.string().min(18).required(),
-            email: Joi.string().email().required(),
-            password: Joi.string().min(8).max(50).required(),
-            profileImageLink: Joi.string().required(),
+            let aadhaarImage, panImage, salarySlipImage;
 
-            aadhaarNumber: Joi.string().min(12).max(12).required(),
-            panNumber: Joi.string().min(10).max(10).required(),
-            ctc: Joi.string().required(),
+            const updateSchema = Joi.object({
+                userName: Joi.string().min(3).max(100).required(),
+                gender: Joi.string().required(),
+                age: Joi.string().required(),
+                email: Joi.string().email().required(),
+                password: Joi.string().min(8).max(50).required(),
+                profileImageLink: Joi.string().required(),
 
-            aadhaarImageLink: Joi.string().required(),
-            panImageLink: Joi.string().required(),
-            salarySlipImageLink: Joi.array().required(),
+                aadhaarNumber: Joi.string().min(12).max(12).required(),
+                panNumber: Joi.string().min(10).max(10).required(),
+                ctc: Joi.string().required(),
 
-            accountHolderName: Joi.string().required(),
-            accountNumber: Joi.string().required(),
-            IFACcode: Joi.string().required(),
-            BankName: Joi.string().required(),
+                aadhaarImage: Joi.string(),
+                panImage: Joi.string(),
+                salarySlipImage: Joi.string(),
 
+                accountHolderName: Joi.string().required(),
+                accountNumber: Joi.string().required(),
+                IFACcode: Joi.string().required(),
+                BankName: Joi.string().required(),
+
+            });
+
+            const data = await firebaseServices.uploadImage("AADHAAR", req.body.panImage);
+
+            const { error } = updateSchema.validate(req.body);
+            if (error) {
+                DeleteOsFiles(req);
+                return next(error);
+            }
+
+            try {
+                const user = await User.findOne({ email: req.body.email });
+                if (!user) {
+                    DeleteOsFiles(req);
+                    discord.SendErrorMessageToDiscord(req.body.email, "Update User", "error user not exist in database !");
+                    return next(CustomErrorHandler.wrongCredentials());
+                }
+
+                //password varification
+                const match = await bcrypt.compare(req.body.password, user.password);
+                if (!match) {
+                    DeleteOsFiles(req);
+                    return next(CustomErrorHandler.wrongCredentials());
+                }
+                const { userName, age, gender, email, aadhaarNumber, panNumber, ctc, profileImageLink, accountHolderName, accountNumber, IFACcode, BankName } = req.body;
+
+                let cibilScore = calculateCIBIL(ctc);
+                let document;
+                // ctc in - ve not possible 
+                if (ctc < 0) {
+                    DeleteOsFiles(req);
+                    return next(CustomErrorHandler.badRequest())
+                }
+
+                //uploading files
+                let aadhaarImageLink = "", panImageLink = "", salarySlipImageLink = "";
+                if (req.files.aadhaarImage) {
+                    aadhaarImage = req.files.aadhaarImage;
+                }
+                else {
+                    aadhaarImage = req.body.aadhaarImage;
+                }
+                if (req.files.panImage) {
+                    panImage = req.files.panImage;
+                }
+                else {
+                    panImage = req.body.panImage;
+                }
+                if (req.files.salarySlipImage) {
+                    salarySlipImage = req.files.salarySlipImage;
+                }
+                else {
+                    salarySlipImage = req.body.salarySlipImage;
+                }
+                
+                //aadhaar image
+                // console.log(aadhaarImage)
+                if (aadhaarImage) {
+                    const path = "AADHAAR";
+                    // const imagePath = aadhaarImage[0].destination + "/"+;
+                    // console.log(imagePath)
+                    const data = await firebaseServices.uploadImage(path, aadhaarImage[0].filename);
+                    if (data.status === false) {
+                        DeleteOsFile(aadhaarImage[0].filename)
+                        discord.SendErrorMessageToDiscord(req.body.email, "Update User", data.error);
+                    }
+                    else {
+                        aadhaarImageLink = data.url;
+                    }
+                    console.log(data)
+                }
+                //pan image
+                if (panImage) {
+                    const path = "PAN";
+                    const data = await firebaseServices.uploadImage(path, panImage);
+                    if (data.status === false) {
+                        DeleteOsFile(panImage[0].filename)
+                        discord.SendErrorMessageToDiscord(req.body.email, "Update User", data.error);
+                    }
+                    else {
+                        panImageLink = data.url;
+                    }
+                }
+                //salarySlip image
+                if (salarySlipImage) {
+                    const path = "SALARYSLIP";
+                    const data = await firebaseServices.uploadImage(path, salarySlipImage);
+                    if (data.status === false) {
+                        DeleteOsFile(salarySlipImage[0].filename)
+                        discord.SendErrorMessageToDiscord(req.body.email, "Update User", data.error);
+                    }
+                    else {
+                        salarySlipImageLink = data.url;
+                    }
+                }
+
+                document = await User.findOneAndUpdate({ _id: req.params.id }, {
+                    userName,
+                    age,
+                    gender,
+                    email,
+                    profileImageLink,
+
+                    aadhaarNumber,
+                    panNumber,
+                    ctc,
+                    cibilScore,
+
+                    aadhaarImageLink,
+                    panImageLink,
+                    salarySlipImageLink,
+
+                    accountHolderName,
+                    accountNumber,
+                    IFACcode,
+                    BankName,
+
+                }).select('-updatedAt -__v -createdAt');
+                // console.log(document);
+                // document have old data so we can delete the old file
+
+                // Delete the uploaded old file
+
+                if (document.aadhaarImageLink != aadhaarImageLink) {
+                    DeleteOsFile(aadhaarImage[0].filename)
+                    DeleteOneFile(document.aadhaarImageLink)
+                }
+                if (document.panImageLink != panImageLink) {
+                    DeleteOsFile(panImage[0].filename)
+                    DeleteOneFile(document.profileImageLink)
+                }
+                if (document.salarySlipImageLink != salarySlipImageLink) {
+                    DeleteOsFile(salarySlipImage[0].filename)
+                    DeleteOneFile(document.salarySlipImageLink)
+                }
+
+            } catch (err) {
+                console.log(err)
+                DeleteOsFiles(req);
+                discord.SendErrorMessageToDiscord(req.body.email, "Update User", err);
+                return next(CustomErrorHandler.alreadyExist('This email is not registered please contact to technical team '));
+            }
+
+            res.status(200).json({ msg: "Updated Successfully", });
         });
-
-        const { error } = updateSchema.validate(req.body);
-
-        // if error in the updation of profile delete the uploaded file 
-        if (error) {
-            // Delete the uploaded file
-            DeleteFiles(req.body.aadhaarImageLink, req.body.panImageLink, req.body.salarySlipImageLink, req.body.email, error)
-            return next(error);
-            // rootfolder/uploads/filename.png
-        }
-
-        try {
-            const user = await User.findOne({ email: req.body.email });
-            if (!user) {
-                discord.SendErrorMessageToDiscord(req.body.email, "Update User", "error user not exist in database !");
-                return next(CustomErrorHandler.wrongCredentials());
-            }
-
-            //password varification
-            const match = await bcrypt.compare(req.body.password, user.password);
-            if (!match) {
-                // Delete the uploaded file
-                DeleteFiles(req.body.aadhaarImageLink, req.body.panImageLink, req.body.salarySlipImageLink, req.body.email, error)
-                return next(CustomErrorHandler.wrongCredentials());
-            }
-            let cibilScore = calculateCIBIL(ctc);
-            const { userName, age, gender, email, aadhaarNumber, panNumber, ctc, aadhaarImageLink, panImageLink, salarySlipImageLink, profileImageLink, accountHolderName, accountNumber, IFACcode, BankName } = req.body;
-            let document;
-            // ctc in - ve not possible 
-            if (ctc < 0) {
-                return next(CustomErrorHandler.badRequest())
-            }
-            document = await User.findOneAndUpdate({ _id: req.params.id }, {
-                userName,
-                age,
-                gender,
-                email,
-                profileImageLink,
-
-                aadhaarNumber,
-                panNumber,
-                ctc,
-                cibilScore,
-
-                aadhaarImageLink,
-                panImageLink,
-                salarySlipImageLink,
-
-                accountHolderName,
-                accountNumber,
-                IFACcode,
-                BankName,
-
-            }).select('-updatedAt -__v -createdAt');
-            // console.log(document);
-            // document have old data so we can compare it with new 
-            // Delete the uploaded old file
-
-            if (document.profileImageLink != req.body.profileImageLink) {
-                DeleteOneFile(document.profileImageLink)
-            }
-            if (document.aadhaarImageLink != req.body.aadhaarImageLink) {
-                DeleteOneFile(document.profileImageLink)
-            }
-            if (document.panImageLink != req.body.panImageLink) {
-                DeleteOneFile(document.profileImageLink)
-            }
-            if (document.salarySlipImageLink.toString() != req.body.salarySlipImageLink.toString()) {
-                document.salarySlipImageLink.forEach(imgLink => {
-                    DeleteOneFile(imgLink)
-                });
-            }
-
-        } catch (err) {
-            // Delete the uploaded file
-            DeleteFiles(req.body.aadhaarImageLink, req.body.panImageLink, req.body.salarySlipImageLink, req.body.email, error)
-            discord.SendErrorMessageToDiscord(req.body.email, "Update User", err);
-            return next(CustomErrorHandler.alreadyExist('This email is not registered please contact to technical team ! . '));
-            // return next( err );
-        }
-
-        res.status(200).json({ msg: "Updated Successfully !!!  ", });
     }
 
 }
 
 export default userController;
 
-const DeleteFiles = (aadhaarImageLink, panImageLink, salarySlipImageLink, email, error) => {
-    let res1 = false;
-    let res2 = false;
-    let res3 = false;
-
-    res1 = firebaseServices.DeleteFileInFirebase(aadhaarImageLink)
-    res2 = firebaseServices.DeleteFileInFirebase(panImageLink)
-    salarySlipImageLink.forEach(imgLink => {
-        let temp = firebaseServices.DeleteFileInFirebase(imgLink)
-        res3 = res3 * temp;
-    });
-    // implimetation for discord error logs
-    const ok = res1 * res2 * res3;
-    if (!ok) {
-        discord.SendErrorMessageToDiscord(email, "update User", error + " and error in deleting files in firebase !!");
-        console.log("failed to deleting file")
+const DeleteOsFiles = (req) => {
+    if (req.files.aadhaarImage) {
+        DeleteOsFile(req.files.aadhaarImage[0].filename)
     }
-    else {
-        discord.SendErrorMessageToDiscord(email, "update User", error + " and All files deleted successfully");
-        console.log("error accurs and all files deleted on firebase successfully")
+    if (req.files.panImage) {
+        DeleteOsFile(req.files.panImage[0].filename)
+    }
+    if (req.files.salarySlipImage) {
+        DeleteOsFile(req.files.salarySlipImage[0].filename)
     }
 }
 
+
+const DeleteOsFile = (fileName) => {
+    const filePath = `${appRoot}/public/uploads/${fileName}`;
+    // console.log(filePath)
+    fs.unlink(filePath, (err) => {
+        if (err) {
+            discord.SendErrorMessageToDiscord(fileName, "User Controller", "error in deleting file in system !!" + err);
+        }
+    });
+}
 
 const DeleteOneFile = (imgName) => {
     let ok = firebaseServices.DeleteFileInFirebase(imgName)
@@ -166,7 +242,15 @@ const DeleteOneFile = (imgName) => {
     console.log("successfully deleted old file")
 }
 
-
+// const parseImage = (req, image) => {
+//     let imageFile;
+//     if (req.files.image) {
+//         imageFile = req.files.image;
+//     }
+//     else {
+//         imageFile = req.body.image;
+//     }
+// }
 
 const calculateCIBIL = (ctc) => {
     const lac = 100000;
