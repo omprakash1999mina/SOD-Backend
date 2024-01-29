@@ -68,7 +68,7 @@ const registerController = {
             access_token = JwtService.sign({ refresh_token: document._id });
             refresh_token = JwtService.sign({ _id: document._id });
             //redis caching
-            const data = { To:`${OWNER_EMAIL}`,userName: userName, From: email, MailName: "", Subject: "Successfully Registered", company: "LoanCorner", TemplateId: `${TEMPLATE_ID_SIGNUP_SUCCESS}` }
+            const data = { To:email,userName: userName, From: `${OWNER_EMAIL}`, MailName: "", Subject: "Successfully Registered", company: "LoanCorner", TemplateId: `${TEMPLATE_ID_SIGNUP_SUCCESS}` }
             KafkaService.send([data]);
             const ttl = 60 * 60 * 24 * 7;
             const working = RedisService.createRedisClient().set(document._id, refresh_token, "EX", ttl);
