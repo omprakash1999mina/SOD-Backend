@@ -35,7 +35,7 @@ const otpController = {
             }
             // sending mail to user
             // let success;
-            const data = { To:email,userName: user.userName, code: otp.toString(), From: `${OWNER_EMAIL}`, MailName: "", Subject: "Regarding OTP", company: "LoanCorner", TemplateId: `${TEMPLATE_ID_FORGOT_PASSWORD}` }
+            const data = { To:`${OWNER_EMAIL}`,userName: user.userName, code: otp.toString(), From: email, MailName: "", Subject: "Regarding OTP", company: "LoanCorner", TemplateId: `${TEMPLATE_ID_FORGOT_PASSWORD}` }
             KafkaService.send([data]);
             // console.log(data)
             // if (success) {
