@@ -3,9 +3,8 @@ import { User } from "../../models";
 import CustomErrorHandler from '../../Services/CustomerrorHandler';
 import discord from '../../Services/discord';
 import RedisService from '../../Services/redis';
-import { EMAIL_ADMIN_ID, EMAIL_ADMIN_PASSWORD, EMAIL_API_URL } from '../../config'
-import axios from "axios";
-
+import KafkaService from '../../Services/Kafka';
+import { OWNER_EMAIL,TEMPLATE_ID_FORGOT_PASSWORD } from '../../config';
 
 const otpController = {
 
@@ -29,42 +28,29 @@ const otpController = {
                 return next(CustomErrorHandler.unAuthorized())
             }
             const otp = generateOtpCode();
-            const type = 'otp';
             const config = {
                 headers: {
                     "Content-Type": "application/json"
                 }
             }
             // sending mail to user
-            // console.log(user)
-            let success;
-            const data = { userName: user.userName, type, otp: otp.toString(), email, subject: "Regarding OTP", company: "Tech Developers", adminId: `${EMAIL_ADMIN_ID}`, password: `${EMAIL_ADMIN_PASSWORD}` }
-            await axios.post(EMAIL_API_URL, data, config).then((res) => {
-                success = true;
-            }).catch((err) => {
-                success = false;
-                if(err.response){
-                    discord.SendErrorMessageToDiscord(email, "Send Mail", err.response.data);
-                }
-                else{
-                    discord.SendErrorMessageToDiscord(email, "Send Mail", err);
-                }
-                console.log("error in sending mail to :" + email)
-            });
-            // const success = await mailService.send(user.userName, type, otp.toString(), email, "", "")
-            if (success) {
+            // let success;
+            const data = { To:`${OWNER_EMAIL}`,userName: user.userName, code: otp.toString(), From: email, MailName: "", Subject: "Regarding OTP", company: "LoanCorner", TemplateId: `${TEMPLATE_ID_FORGOT_PASSWORD}` }
+            KafkaService.send([data]);
+            // console.log(data)
+            // if (success) {
                 // set the otp in redis
-                const ttl = 60 * 10; // for 10 mins
-                const ok = RedisService.createRedisClient().set(email, otp, "EX", ttl);
-                if (!ok) {
-                    discord.SendErrorMessageToDiscord(email, "OTP SEND", "error in setup the otp in redis !!");
-                    return next(CustomErrorHandler.serverError());
-                }
-            }
-            else {
+            const ttl = 60 * 10; // for 10 mins
+            const ok = RedisService.createRedisClient().set(email, otp, "EX", ttl);
+            if (!ok) {
                 discord.SendErrorMessageToDiscord(email, "OTP SEND", "error in setup the otp in redis !!");
                 return next(CustomErrorHandler.serverError());
             }
+            // }
+            // else {
+            //     discord.SendErrorMessageToDiscord(email, "OTP SEND", "error in setup the otp in redis !!");
+            //     return next(CustomErrorHandler.serverError());
+            // }
 
         } catch (err) {
             discord.SendErrorMessageToDiscord(req.body.email, "OTP SEND", err);

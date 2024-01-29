@@ -4,3 +4,4 @@ export { default as userController } from './auth/userController';
 export { default as refreshController } from './auth/refreshController';
 export { default as forgotPasswordController } from './auth/forgotPasswordController';
 export { default as loanStatusController } from './loanStatusController';
+export { default as NotificationController } from './notificationController';

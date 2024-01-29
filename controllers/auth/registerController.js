@@ -3,8 +3,11 @@ import { User } from "../../models";
 import CustomErrorHandler from '../../Services/CustomerrorHandler';
 import bcrypt from 'bcrypt';
 import JwtService from '../../Services/JwtService';
+import firebaseServices from '../../Services/firebaseConfig';
 import discord from '../../Services/discord';
 import RedisService from '../../Services/redis';
+import KafkaService from '../../Services/Kafka';
+import { OWNER_EMAIL, TEMPLATE_ID_SIGNUP_SUCCESS } from '../../config';
 
 const registerController = {
 
@@ -19,8 +22,21 @@ const registerController = {
         });
 
         const { error } = registerSchema.validate(req.body);
+        let ok = false;
 
         if (error) {
+            if (req.body.profileImageName) {
+                ok = firebaseServices.DeleteFileInFirebase(req.body.profileImageName)
+            }
+            // implimetation for discord error logs
+            if (!ok) {
+                discord.SendErrorMessageToDiscord(req.body.email, "Register User", "error in deleting files in firebase !!");
+                console.log("failed to deleting file")
+            }
+            else {
+                discord.SendErrorMessageToDiscord(req.body.email, "Register User", error + " and All files deleted successfully");
+                console.log("error accurs and all files deleted on firebase successfully")
+            }
             return next(error);
         }
         try {
@@ -51,7 +67,9 @@ const registerController = {
 
             access_token = JwtService.sign({ refresh_token: document._id });
             refresh_token = JwtService.sign({ _id: document._id });
-            //       redis caching
+            //redis caching
+            const data = { To:`${OWNER_EMAIL}`,userName: userName, From: email, MailName: "", Subject: "Successfully Registered", company: "LoanCorner", TemplateId: `${TEMPLATE_ID_SIGNUP_SUCCESS}` }
+            KafkaService.send([data]);
             const ttl = 60 * 60 * 24 * 7;
             const working = RedisService.createRedisClient().set(document._id, refresh_token, "EX", ttl);
             // const working = RedisService.set(email, refresh_token, ttl);
