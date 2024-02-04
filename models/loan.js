@@ -14,7 +14,7 @@ const loanSchema = new Schema({
         }],
         required: true
     },
-    NextInstallment: {type: String, required: true },
+    NextInstallment: {type: Number, required: true },
     status: {type: String, default: 'available' }
 }, { timestamps: true  });
 

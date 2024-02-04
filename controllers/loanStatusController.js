@@ -231,11 +231,13 @@ const loanStatusController = {
         }
         try {
             const { customerId, loanAmount, tenure, intRate } = req.body;
-            let EMIAmount = (loanAmount + loanAmount*intRate)/tenure;
+            let EMIAmount = (loanAmount + loanAmount * intRate) / tenure;
             let currentDate = new Date();
 
             let installments = installmentBreakdown(currentDate, tenure);
-            let NextInstallment = NextDate(currentDate, 1);
+            const milliseconds = Date.parse(NextDate(currentDate, 1));
+            // Convert milliseconds to days
+            let NextInstallment = milliseconds / (24 * 3600 * 1000);
 
             let document = await Loan.create({
                 customerId,
@@ -285,11 +287,13 @@ const loanStatusController = {
                 return next(CustomErrorHandler.badRequest())
             }
 
-            let EMIAmount = (loanAmount + loanAmount*intRate)/tenure;
+            let EMIAmount = (loanAmount + loanAmount * intRate) / tenure;
 
             let currentDate = new Date();
             let installments = installmentBreakdown(currentDate, tenure);
-            let NextInstallment = NextDate(currentDate, 1);
+            const milliseconds = Date.parse(NextDate(currentDate, 1));
+            // Convert milliseconds to days
+            let NextInstallment = milliseconds / (24 * 3600 * 1000);
 
             let document = await Loan.findOneAndUpdate({ _id: loanId }, {
                 loanAmount,
@@ -375,8 +379,8 @@ const loanStatusController = {
                 profileAccountBalance
             })
             let currentInstallment = loanExist.currentInstallment;
-            currentInstallment=currentInstallment+1;
-            
+            currentInstallment = currentInstallment + 1;
+
             const loanUpdated = await loan.findOneAndUpdate({ _id: loanId }, {
                 currentInstallment
             })
@@ -398,17 +402,16 @@ const loanStatusController = {
 export default loanStatusController;
 
 
-const NextDate=(currentDate, steps = 1)=>{
+const NextDate = (currentDate, steps = 1) => {
     let newDate = new Date();
-    newDate.setDate(currentDate.getDate()+30*steps);
+    newDate.setDate(currentDate.getDate() + 30 * steps);
     return newDate.toString("");
 }
 
 const installmentBreakdown = (currentDate, tenure) => {
     let installments = Array(tenure);
-    for(let i = 0; i < tenure; i++)
-    {
-        installments[i] = {dueDate: NextDate(currentDate, i+1), isDue: true};
+    for (let i = 0; i < tenure; i++) {
+        installments[i] = { dueDate: NextDate(currentDate, i + 1), isDue: true };
     }
     return installments;
 }
