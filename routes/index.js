@@ -22,6 +22,6 @@ router.post('/logout', loginController.logout);
 router.put('/update/:id', [auth], userController.update);
 router.get('/users/:id', [auth], userController.getUsersOne);
 router.post('/email/verify', otpController.send);
-router.put('/notification/cycle/:username/:key', NotificationController.DailyCheck);
+router.get('/notification/cycle/:username/:key', NotificationController.DailyCheck);
 
 export default router;
