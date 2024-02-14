@@ -61,7 +61,7 @@ const KafkaService = {
             Discord.SendErrorMessageToDiscord("Error", "Kafka-Service", err)
         }
         console.log("Message sent successfully");
-        return success
+        // return success
     }
 }
 
