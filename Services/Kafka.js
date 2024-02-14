@@ -37,7 +37,7 @@ const KafkaService = {
             success=true
         };
 
-        run().catch(err =>{
+        await run().catch(err =>{
             console.error('Erros Kafka-Service: ', err)
             Discord.SendErrorMessageToDiscord("Error","Kafka-Service",err)
         });
