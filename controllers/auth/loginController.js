@@ -18,7 +18,6 @@ const loginController = {
         // password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$@')).required(),
 
         console.log(req.body);
-
         const { error } = loginSchema.validate(req.body);
         if (error) {
             return next(error);
@@ -46,12 +45,14 @@ const loginController = {
             // const ok = RedisService.set(redis, email, refresh_token, ttl);
 
             if (!ok) {
+                Logger.error("LogIN", "error in setup the token in redis !!");
                 discord.SendErrorMessageToDiscord(email, "LogIN", "error in setup the token in redis !!");
                 return next(CustomErrorHandler.serverError());
             }
             // await RefreshToken.create({ refresh_token: refresh_token });
             res.status(200).json({ id, access_token, refresh_token });
         } catch (err) {
+            Logger.error("Login", err);
             discord.SendErrorMessageToDiscord(req.body.email, "Login", err);
             return next(CustomErrorHandler.serverError());
         }
@@ -71,11 +72,13 @@ const loginController = {
             const { _id } = JwtService.verify(req.body.refresh_token, REFRESH_SECRET);
             const ok = await RedisService.createRedisClient().del(_id);
             if (!ok) {
+                Logger.error("Logout", "error in deleting refresh token in redis !!");
                 discord.SendErrorMessageToDiscord(_id, "Logout", "error in deleting refresh token in redis !!");
                 return next(CustomErrorHandler.badRequest("you're already logout !!"))
             }
             // await RefreshToken.deleteOne({ refresh_token: req.body.refresh_token });
         } catch (err) {
+            Logger.error("Logout", err);
             discord.SendErrorMessageToDiscord(req.body.refresh_token, "Logout", err);
             return next(CustomErrorHandler.serverError());
         }

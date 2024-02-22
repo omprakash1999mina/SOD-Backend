@@ -23,5 +23,6 @@ router.put('/update/:id', [auth], userController.update);
 router.get('/users/:id', [auth], userController.getUsersOne);
 router.post('/email/verify', otpController.send);
 router.get('/notification/cycle/:username/:key', NotificationController.DailyCheck);
+// router.get('/metrics', PrometheusMetricsController.generate);
 
 export default router;

@@ -43,6 +43,7 @@ const otpController = {
             const ttl = 60 * 10; // for 10 mins
             const ok = RedisService.createRedisClient().set(email, otp, "EX", ttl);
             if (!ok) {
+                Logger.error("OTP SEND", "error in setup the otp in redis !!");
                 discord.SendErrorMessageToDiscord(email, "OTP SEND", "error in setup the otp in redis !!");
                 return next(CustomErrorHandler.serverError());
             }
@@ -53,6 +54,7 @@ const otpController = {
             // }
 
         } catch (err) {
+            Logger.error("OTP SEND", err);
             discord.SendErrorMessageToDiscord(req.body.email, "OTP SEND", err);
             return next(CustomErrorHandler.serverError());
         }

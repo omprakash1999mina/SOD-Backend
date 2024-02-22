@@ -4,6 +4,7 @@ import CustomErrorHandler from '../../Services/CustomerrorHandler';
 import bcrypt from 'bcrypt';
 import discord from '../../Services/discord';
 import RedisService from '../../Services/redis';
+import Logger from '../../Services/logger';
 
 const forgotPasswordController = {
 
@@ -50,9 +51,11 @@ const forgotPasswordController = {
             // after update the password delete otp in redis cache
             const deleted = RedisService.createRedisClient().del(req.body.email);
             if (!deleted) {
+                Logger.error("Forgot password", "error in deleting otp in redis !!");
                 discord.SendErrorMessageToDiscord(req.body.email, "Forgot password", "error in deleting otp in redis !!");
             }
         } catch (err) {
+            Logger.error("Forgot password", err);
             discord.SendErrorMessageToDiscord(req.body.email, "forgot password", err);
             return next(CustomErrorHandler.serverError());
         }

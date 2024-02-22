@@ -39,6 +39,7 @@ const refreshController = {
                 }
 
             } catch (err) {
+                Logger.error("Refresh token", err);
                 discord.SendErrorMessageToDiscord(req.body.refresh_token, "Refresh token", err);
                 return next(CustomErrorHandler.unAuthorized('  Invalid refresh token'));
             }
@@ -55,7 +56,8 @@ const refreshController = {
 
             res.status(200).json({ access_token, refresh_token });
         } catch (err) {
-            return next(new Error("Somthing went wrong  !!! " + err.message));
+            Logger.error("Something went wrong  !!! " ,err.message);
+            return next(new Error("Something went wrong  !!! " + err.message));
         }
 
     }

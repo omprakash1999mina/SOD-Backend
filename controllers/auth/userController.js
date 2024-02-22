@@ -10,6 +10,7 @@ const userController = {
         try {
             document = await User.findOne({ _id: req.params.id }).select('-updatedAt -__v -createdAt -password -_id');
         } catch (err) {
+            Logger.error(req.params.id, "Get one user",err.message);
             discord.SendErrorMessageToDiscord(req.params.id, "Get one user", err);
             return next(CustomErrorHandler.serverError());
         }
@@ -72,6 +73,7 @@ const userController = {
         } catch (err) {
             // Delete the uploaded file
             // DeleteFiles(req.body.aadhaarImageLink, req.body.panImageLink, req.body.salarySlipImageLink, req.body.email, error)
+            Logger.error(req.body.email, "Update User" ,err.message);
             discord.SendErrorMessageToDiscord(req.body.email, "Update User", err);
             return next(CustomErrorHandler.alreadyExist('This email is not registered please contact to technical team ! . '));
             // return next( err );

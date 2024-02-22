@@ -41,6 +41,6 @@ export const {
     KAFKA_BROKER1,
     KAFKA_BROKER1_URL,
     KAFKA_CLIENT_ID,
-    KAFKA_TOPIC
-
+    KAFKA_TOPIC,
+    LOKI_HOST
 } = process.env;

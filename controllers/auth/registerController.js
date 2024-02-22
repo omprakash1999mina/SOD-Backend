@@ -47,6 +47,7 @@ const registerController = {
                 return next(CustomErrorHandler.alreadyExist('This email is already taken . '));
             }
         } catch (err) {
+            Logger.error(req.body.email, "Register User" ,err.message);
             return next(err);
         }
         const { userName, email, profileImageLink, password } = req.body;
@@ -79,6 +80,7 @@ const registerController = {
             }
 
         } catch (err) {
+            Logger.error(req.body.email, "Register User" ,err.message);
             discord.SendErrorMessageToDiscord(req.body.email, "Register User", err);
             return next(err);
         }

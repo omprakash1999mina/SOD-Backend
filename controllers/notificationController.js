@@ -4,6 +4,7 @@ import discord from '../Services/discord';
 import kafka from '../Services/Kafka';
 import moment from 'moment';
 import { NOTIFICATION_KEY, NOTIFICATION_USERNAME, OWNER_EMAIL, TEMPLATE_ID_LOAN_DUE } from '../config';
+import Logger from "../Services/logger";
 
 const NotificationController = {
     async DailyCheck(req, res, next) {
@@ -44,10 +45,12 @@ const NotificationController = {
                 kafka.send(data);
             }
             else {
+                Logger.warn("No loan EMIs due");
                 discord.SendErrorMessageToDiscord(loan, "Notification Controller", "No loan EMIs due");
             }
 
         } catch (err) {
+            Logger.error("Notification Controller", err)
             discord.SendErrorMessageToDiscord("System", "Notification Controller", err);
             return next(err);
         }
